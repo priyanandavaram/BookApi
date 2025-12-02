@@ -1,58 +1,78 @@
-name: CI/CD BookApi to AWS Lambda
+name: Deploy BookApi Lambda (.NET 10)
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
-
     steps:
-      # 1️⃣ Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
 
-      # 2️⃣ Setup .NET SDK (match your project version)
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 10.0.x
+    # 1️⃣ Checkout repository
+    - name: Checkout
+      uses: actions/checkout@v3
 
-      # 3️⃣ Restore dependencies
-      - name: Restore dependencies
-        run: dotnet restore
+    # 2️⃣ Setup .NET 10
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: "10.0.x"
 
-      # 4️⃣ Build the project
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+    # 3️⃣ Install Lambda Tools
+    - name: Install Lambda Tools
+      run: dotnet tool install -g Amazon.Lambda.Tools
 
-      # 5️⃣ Run tests
-      - name: Test
-        run: dotnet test --no-build --verbosity normal
+    # 4️⃣ Clean publish folder
+    - name: Clean publish folder
+      run: rm -rf publish
 
-      # 6️⃣ Publish for Lambda
-      - name: Publish project
-        run: dotnet publish BookApi.csproj -c Release -o ./publish
+    # 5️⃣ Publish Lambda
+    - name: Publish Lambda
+      run: |
+        dotnet restore
+        dotnet publish BookApi.csproj -c Release -o publish
 
-      # 7️⃣ Create zip package
-      - name: Zip Lambda package
-        run: |
-          cd publish
-          zip -r ../BookApi.zip .
-          cd ..
+    # 6️⃣ Create deployment zip
+    - name: Create deployment zip
+      working-directory: publish
+      run: |
+        rm -f lambda.zip
+        zip -r lambda.zip .
 
-      # 8️⃣ Deploy to AWS Lambda
-      - name: Deploy to AWS Lambda
-        uses: aws-actions/aws-cli@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-north-1
-          command: |
-            aws lambda update-function-code --function-name BookApiLambda --zip-file fileb://BookApi.zip
+    # 7️⃣ Configure AWS credentials
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    # 8️⃣ Upload new code to $LATEST
+    - name: Upload Lambda package
+      run: |
+        aws lambda update-function-code \
+          --function-name BookApiLambda \
+          --zip-file fileb://publish/lambda.zip
+
+    # 9️⃣ Wait until Lambda finishes updating
+    - name: Wait for Lambda
+      run: aws lambda wait function-updated --function-name BookApiLambda
+
+    # 🔟 Publish new version
+    - name: Publish version
+      id: pub
+      run: |
+        VERSION=$(aws lambda publish-version --function-name BookApiLambda --query Version --output text)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    # 1️⃣1️⃣ Update alias 'prod'
+    - name: Update alias prod
+      run: |
+        VERSION=${{ steps.pub.outputs.version }}
+        if aws lambda get-alias --function-name BookApiLambda --name prod >/dev/null 2>&1; then
+          aws lambda update-alias --function-name BookApiLambda --name prod --function-version $VERSION
+        else
+          aws lambda create-alias --function-name BookApiLambda --name prod --function-version $VERSION
+        fi
