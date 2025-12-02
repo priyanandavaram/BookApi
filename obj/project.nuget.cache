@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "ss/Y5eMnS9g=",
+  "success": true,
+  "projectFilePath": "/Users/ravi/dotnet/BookApi/BookApi.csproj",
+  "expectedPackageFiles": [
+    "/Users/ravi/.nuget/packages/amazon.lambda.apigatewayevents/2.7.0/amazon.lambda.apigatewayevents.2.7.0.nupkg.sha512",
+    "/Users/ravi/.nuget/packages/amazon.lambda.applicationloadbalancerevents/2.2.0/amazon.lambda.applicationloadbalancerevents.2.2.0.nupkg.sha512",
+    "/Users/ravi/.nuget/packages/amazon.lambda.aspnetcoreserver/9.0.0/amazon.lambda.aspnetcoreserver.9.0.0.nupkg.sha512",
+    "/Users/ravi/.nuget/packages/amazon.lambda.core/2.2.0/amazon.lambda.core.2.2.0.nupkg.sha512",
+    "/Users/ravi/.nuget/packages/amazon.lambda.logging.aspnetcore/3.1.0/amazon.lambda.logging.aspnetcore.3.1.0.nupkg.sha512",
+    "/Users/ravi/.nuget/packages/amazon.lambda.serialization.systemtextjson/2.4.1/amazon.lambda.serialization.systemtextjson.2.4.1.nupkg.sha512"
+  ],
+  "logs": []
+}
