@@ -1,6 +1,5 @@
 name: Deploy BookApi Lambda (.NET 8)
 
-
 on:
   push:
     branches: [ "main" ]
